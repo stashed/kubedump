@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/client-go/rest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -61,6 +62,10 @@ type esOptions struct {
 	outputDir         string
 	storageSecret     kmapi.ObjectReference
 	waitTimeout       int32
+
+	sanitize bool
+	config   *rest.Config
+	context  string
 
 	setupOptions   restic.SetupOptions
 	backupOptions  restic.BackupOptions

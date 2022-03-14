@@ -18,7 +18,7 @@ package pkg
 
 import (
 	"context"
-	"fmt"
+	v1 "kmodules.xyz/offshoot-api/api/v1"
 	"path/filepath"
 	"time"
 
@@ -34,9 +34,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
+	"kmodules.xyz/client-go/tools/backup"
 	appcatalog "kmodules.xyz/custom-resources/apis/appcatalog/v1alpha1"
 	appcatalog_cs "kmodules.xyz/custom-resources/client/clientset/versioned"
-	v1 "kmodules.xyz/offshoot-api/api/v1"
 )
 
 func NewCmdBackup() *cobra.Command {
@@ -68,6 +68,8 @@ func NewCmdBackup() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			opt.config = config
+
 			err = license.CheckLicenseEndpoint(config, licenseApiService, SupportedProducts)
 			if err != nil {
 				return err
@@ -191,42 +193,18 @@ func (opt *esOptions) backupElasticsearch(targetRef api_v1beta1.TargetRef) (*res
 		return nil, err
 	}
 
-	// clear directory before running multielasticdump
-	session := opt.newSessionWrapper(MultiElasticDumpCMD)
+	klog.Infoln("ClientConfig: ", appBinding.Spec.ClientConfig)
 
-	err = opt.setDatabaseCredentials(appBinding, session.cmd)
-	if err != nil {
-		return nil, err
-	}
 	klog.Infoln("Cleaning up directory: ", opt.interimDataDir)
 	if err := clearDir(opt.interimDataDir); err != nil {
 		return nil, err
 	}
 
-	url, err := appBinding.URL()
+	// backup cluster resources yaml into opt.backupDir
+	mgr := backup.NewBackupManager(opt.context, opt.config, opt.sanitize)
+
+	_, err = mgr.BackupToDir(opt.interimDataDir)
 	if err != nil {
-		return nil, err
-	}
-	session.cmd.Args = append(session.cmd.Args, []interface{}{
-		fmt.Sprintf(`--input=%v`, url),
-		fmt.Sprintf(`--output=%v`, opt.interimDataDir),
-	}...)
-
-	err = session.setTLSParameters(appBinding, opt.setupOptions.ScratchDir)
-	if err != nil {
-		return nil, err
-	}
-
-	err = opt.waitForDBReady(appBinding)
-	if err != nil {
-		return nil, err
-	}
-
-	session.sh.ShowCMD = false
-	session.setUserArgs(opt.esArgs)
-	session.sh.Command(session.cmd.Name, session.cmd.Args...) // xref: multielasticdump: https://github.com/taskrabbit/elasticsearch-dump#multielasticdump
-
-	if err := session.sh.Run(); err != nil {
 		return nil, err
 	}
 
