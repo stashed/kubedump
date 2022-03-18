@@ -38,6 +38,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
+	"fmt"
 )
 
 const (
@@ -193,9 +194,11 @@ func (mgr BackupManager) Backup(process processorFunc) error {
 				item["apiVersion"] = list.GroupVersion
 				item["kind"] = r.Kind
 
+
 				md, ok := item["metadata"]
 				if ok {
-					path = getPathFromSelfLink(md)
+					fmt.Println("================= Metadata ==================\n",md)
+					path = generatePath(md,r.Kind)
 					if mgr.sanitize {
 						cleanUpObjectMeta(md)
 					}
@@ -305,6 +308,23 @@ func getPathFromSelfLink(md interface{}) string {
 	meta, ok := md.(map[string]interface{})
 	if ok {
 		return meta["selfLink"].(string) + ".yaml"
+	}
+	return ""
+}
+
+func generatePath(md interface{},kind string) string {
+	meta, ok := md.(map[string]interface{})
+	if ok {
+		namespace:=getField(meta,"namespace")
+		name:=getField(meta,"name")
+		return filepath.Join(namespace,kind,name)+".yaml"
+	}
+	return ""
+}
+
+func getField(m map[string]interface{},key string) string  {
+	if v,ok:=m[key];ok{
+		return v.(string)
 	}
 	return ""
 }

@@ -59,8 +59,8 @@ BIN_PLATFORMS    := $(DOCKER_PLATFORMS)
 OS   := $(if $(GOOS),$(GOOS),$(shell go env GOOS))
 ARCH := $(if $(GOARCH),$(GOARCH),$(shell go env GOARCH))
 
-BASEIMAGE_PROD   ?= node:16-alpine
-BASEIMAGE_DBG    ?= node:16-alpine
+BASEIMAGE_PROD   ?= busybox:latest
+BASEIMAGE_DBG    ?= debian:bullseye
 
 IMAGE            := $(REGISTRY)/$(BIN)
 VERSION_PROD     := $(VERSION)

@@ -153,7 +153,7 @@ func (inv *BackupBatchInvoker) GetTargetInfo() []BackupTargetInfo {
 	for _, member := range inv.backupBatch.Spec.Members {
 		targetInfo = append(targetInfo, BackupTargetInfo{
 			Task:                  member.Task,
-			Target:                member.Target,
+			Target:                withDefaultTarget(member.Target),
 			RuntimeSettings:       member.RuntimeSettings,
 			TempDir:               member.TempDir,
 			InterimVolumeTemplate: member.InterimVolumeTemplate,

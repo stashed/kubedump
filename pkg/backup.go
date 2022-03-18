@@ -20,6 +20,8 @@ import (
 	"context"
 	v1 "kmodules.xyz/offshoot-api/api/v1"
 	"path/filepath"
+	"stash.appscode.dev/apimachinery/pkg/invoker"
+	"stash.appscode.dev/elasticsearch/pkg/manifests"
 	"time"
 
 	api_v1beta1 "stash.appscode.dev/apimachinery/apis/stash/v1beta1"
@@ -34,16 +36,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
-	"kmodules.xyz/client-go/tools/backup"
-	appcatalog "kmodules.xyz/custom-resources/apis/appcatalog/v1alpha1"
 	appcatalog_cs "kmodules.xyz/custom-resources/client/clientset/versioned"
+	"stash.appscode.dev/apimachinery/apis/stash/v1beta1"
 )
 
 func NewCmdBackup() *cobra.Command {
 	var (
 		masterURL      string
 		kubeconfigPath string
-		opt            = esOptions{
+		opt            = options{
 			waitTimeout: 300,
 			setupOptions: restic.SetupOptions{
 				ScratchDir:  restic.DefaultScratchDir,
@@ -56,7 +57,7 @@ func NewCmdBackup() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:               "backup-es",
+		Use:               "backup-manifest",
 		Short:             "Takes a backup of Elasticsearch DB",
 		DisableAutoGenTag: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -87,43 +88,45 @@ func NewCmdBackup() *cobra.Command {
 				return err
 			}
 
-			targetRef := api_v1beta1.TargetRef{
-				APIVersion: appcatalog.SchemeGroupVersion.String(),
-				Kind:       appcatalog.ResourceKindApp,
-				Name:       opt.appBindingName,
-			}
-			var backupOutput *restic.BackupOutput
-			backupOutput, err = opt.backupElasticsearch(targetRef)
+			inv, err := invoker.NewBackupInvoker(opt.stashClient, opt.invokerKind, opt.invokerName, opt.namespace)
 			if err != nil {
-				backupOutput = &restic.BackupOutput{
-					BackupTargetStatus: api_v1beta1.BackupTargetStatus{
-						Ref: targetRef,
-						Stats: []api_v1beta1.HostBackupStats{
-							{
-								Hostname: opt.backupOptions.Host,
-								Phase:    api_v1beta1.HostBackupFailed,
-								Error:    err.Error(),
-							},
-						},
-					},
-				}
+				return err
 			}
-			// If output directory specified, then write the output in "output.json" file in the specified directory
-			if opt.outputDir != "" {
-				return backupOutput.WriteOutput(filepath.Join(opt.outputDir, restic.DefaultOutputFileName))
+
+			for _, ti := range inv.GetTargetInfo() {
+				if ti.Target != nil && targetMatched(ti.Target.Ref, opt.targetKind, opt.targetName) {
+					var backupOutput *restic.BackupOutput
+					backupOutput, err = opt.backupManifests(ti.Target.Ref)
+					if err != nil {
+						backupOutput = &restic.BackupOutput{
+							BackupTargetStatus: api_v1beta1.BackupTargetStatus{
+								Ref: ti.Target.Ref,
+								Stats: []api_v1beta1.HostBackupStats{
+									{
+										Hostname: opt.backupOptions.Host,
+										Phase:    api_v1beta1.HostBackupFailed,
+										Error:    err.Error(),
+									},
+								},
+							},
+						}
+					}
+					// If output directory specified, then write the output in "output.json" file in the specified directory
+					if opt.outputDir != "" {
+						return backupOutput.WriteOutput(filepath.Join(opt.outputDir, restic.DefaultOutputFileName))
+					}
+				}
 			}
 			return nil
 		},
 	}
 
-	cmd.Flags().StringVar(&opt.esArgs, "es-args", opt.esArgs, "Additional arguments")
 	cmd.Flags().Int32Var(&opt.waitTimeout, "wait-timeout", opt.waitTimeout, "Number of seconds to wait for the database to be ready")
 
 	cmd.Flags().StringVar(&masterURL, "master", masterURL, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
 	cmd.Flags().StringVar(&kubeconfigPath, "kubeconfig", kubeconfigPath, "Path to kubeconfig file with authorization information (the master location is set by the master flag).")
 	cmd.Flags().StringVar(&opt.namespace, "namespace", "default", "Namespace of Backup/Restore Session")
 	cmd.Flags().StringVar(&opt.backupSessionName, "backupsession", opt.backupSessionName, "Name of the Backup Session")
-	cmd.Flags().StringVar(&opt.appBindingName, "appbinding", opt.appBindingName, "Name of the app binding")
 	cmd.Flags().StringVar(&opt.storageSecret.Name, "storage-secret-name", opt.storageSecret.Name, "Name of the storage secret")
 	cmd.Flags().StringVar(&opt.storageSecret.Namespace, "storage-secret-namespace", opt.storageSecret.Namespace, "Namespace of the storage secret")
 
@@ -138,6 +141,10 @@ func NewCmdBackup() *cobra.Command {
 
 	cmd.Flags().StringVar(&opt.backupOptions.Host, "hostname", opt.backupOptions.Host, "Name of the host machine")
 	cmd.Flags().StringVar(&opt.interimDataDir, "interim-data-dir", opt.interimDataDir, "Directory where the targeted data will be stored temporarily before uploading to the backend.")
+	cmd.Flags().StringVar(&opt.invokerKind, "invoker-kind", opt.invokerKind, "Kind of the backup invoker")
+	cmd.Flags().StringVar(&opt.invokerName, "invoker-name", opt.invokerName, "Name of the respective backup invoker")
+	cmd.Flags().StringVar(&opt.targetKind, "target-kind", opt.targetKind, "Kind of the Target")
+	cmd.Flags().StringVar(&opt.targetName, "target-name", opt.targetName, "Name of the Target")
 
 	cmd.Flags().Int64Var(&opt.backupOptions.RetentionPolicy.KeepLast, "retention-keep-last", opt.backupOptions.RetentionPolicy.KeepLast, "Specify value for retention strategy")
 	cmd.Flags().Int64Var(&opt.backupOptions.RetentionPolicy.KeepHourly, "retention-keep-hourly", opt.backupOptions.RetentionPolicy.KeepHourly, "Specify value for retention strategy")
@@ -154,7 +161,7 @@ func NewCmdBackup() *cobra.Command {
 	return cmd
 }
 
-func (opt *esOptions) backupElasticsearch(targetRef api_v1beta1.TargetRef) (*restic.BackupOutput, error) {
+func (opt *options) backupManifests(targetRef api_v1beta1.TargetRef) (*restic.BackupOutput, error) {
 	var err error
 	opt.setupOptions.StorageSecret, err = opt.kubeClient.CoreV1().Secrets(opt.storageSecret.Namespace).Get(context.TODO(), opt.storageSecret.Name, metav1.GetOptions{})
 	if err != nil {
@@ -188,22 +195,14 @@ func (opt *esOptions) backupElasticsearch(targetRef api_v1beta1.TargetRef) (*res
 		return nil, err
 	}
 
-	appBinding, err := opt.catalogClient.AppcatalogV1alpha1().AppBindings(opt.namespace).Get(context.TODO(), opt.appBindingName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	klog.Infoln("ClientConfig: ", appBinding.Spec.ClientConfig)
-
 	klog.Infoln("Cleaning up directory: ", opt.interimDataDir)
 	if err := clearDir(opt.interimDataDir); err != nil {
 		return nil, err
 	}
 
-	// backup cluster resources yaml into opt.backupDir
-	mgr := backup.NewBackupManager(opt.context, opt.config, opt.sanitize)
+	dumper := manifests.NewDumper()
 
-	_, err = mgr.BackupToDir(opt.interimDataDir)
+	err = dumper.Dump()
 	if err != nil {
 		return nil, err
 	}
@@ -218,4 +217,8 @@ func (opt *esOptions) backupElasticsearch(targetRef api_v1beta1.TargetRef) (*res
 	}
 
 	return resticWrapper.RunBackup(opt.backupOptions, targetRef)
+}
+
+func targetMatched(tref v1beta1.TargetRef, expectedKind, expectedName string) bool {
+	return tref.Kind == expectedKind && tref.Name == expectedName
 }
