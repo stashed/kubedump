@@ -38,7 +38,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
-	"fmt"
 )
 
 const (
@@ -77,17 +76,17 @@ func (mgr BackupManager) BackupToDir(backupDir string) (string, error) {
 	p := func(relPath string, data []byte) error {
 		absPath := filepath.Join(backupDir, snapshotDir, relPath)
 		dir := filepath.Dir(absPath)
-		err := os.MkdirAll(dir, 0777)
+		err := os.MkdirAll(dir, 0o777)
 		if err != nil {
 			return err
 		}
-		return ioutil.WriteFile(absPath, data, 0644)
+		return ioutil.WriteFile(absPath, data, 0o644)
 	}
 	return snapshotDir, mgr.Backup(p)
 }
 
 func (mgr BackupManager) BackupToTar(backupDir string) (string, error) {
-	err := os.MkdirAll(backupDir, 0777)
+	err := os.MkdirAll(backupDir, 0o777)
 	if err != nil {
 		return "", err
 	}
@@ -112,7 +111,7 @@ func (mgr BackupManager) BackupToTar(backupDir string) (string, error) {
 		header := new(tar.Header)
 		header.Name = relPath
 		header.Size = int64(len(data))
-		header.Mode = 0666
+		header.Mode = 0o666
 		header.ModTime = t
 		// write the header to the tarball archive
 		if err := tw.WriteHeader(header); err != nil {
@@ -194,11 +193,9 @@ func (mgr BackupManager) Backup(process processorFunc) error {
 				item["apiVersion"] = list.GroupVersion
 				item["kind"] = r.Kind
 
-
 				md, ok := item["metadata"]
 				if ok {
-					fmt.Println("================= Metadata ==================\n",md)
-					path = generatePath(md,r.Kind)
+					path = getPathFromSelfLink(md)
 					if mgr.sanitize {
 						cleanUpObjectMeta(md)
 					}
@@ -308,23 +305,6 @@ func getPathFromSelfLink(md interface{}) string {
 	meta, ok := md.(map[string]interface{})
 	if ok {
 		return meta["selfLink"].(string) + ".yaml"
-	}
-	return ""
-}
-
-func generatePath(md interface{},kind string) string {
-	meta, ok := md.(map[string]interface{})
-	if ok {
-		namespace:=getField(meta,"namespace")
-		name:=getField(meta,"name")
-		return filepath.Join(namespace,kind,name)+".yaml"
-	}
-	return ""
-}
-
-func getField(m map[string]interface{},key string) string  {
-	if v,ok:=m[key];ok{
-		return v.(string)
 	}
 	return ""
 }

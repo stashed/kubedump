@@ -18,16 +18,15 @@ package pkg
 
 import (
 	"context"
-	v1 "kmodules.xyz/offshoot-api/api/v1"
 	"path/filepath"
-	"stash.appscode.dev/apimachinery/pkg/invoker"
-	"stash.appscode.dev/elasticsearch/pkg/manifests"
 	"time"
 
-	api_v1beta1 "stash.appscode.dev/apimachinery/apis/stash/v1beta1"
+	"stash.appscode.dev/apimachinery/apis/stash/v1beta1"
 	stash "stash.appscode.dev/apimachinery/client/clientset/versioned"
+	"stash.appscode.dev/apimachinery/pkg/invoker"
 	"stash.appscode.dev/apimachinery/pkg/restic"
 	api_util "stash.appscode.dev/apimachinery/pkg/util"
+	"stash.appscode.dev/elasticsearch/pkg/manager"
 
 	"github.com/spf13/cobra"
 	license "go.bytebuilders.dev/license-verifier/kubernetes"
@@ -37,7 +36,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	appcatalog_cs "kmodules.xyz/custom-resources/client/clientset/versioned"
-	"stash.appscode.dev/apimachinery/apis/stash/v1beta1"
+	v1 "kmodules.xyz/offshoot-api/api/v1"
 )
 
 func NewCmdBackup() *cobra.Command {
@@ -99,12 +98,12 @@ func NewCmdBackup() *cobra.Command {
 					backupOutput, err = opt.backupManifests(ti.Target.Ref)
 					if err != nil {
 						backupOutput = &restic.BackupOutput{
-							BackupTargetStatus: api_v1beta1.BackupTargetStatus{
+							BackupTargetStatus: v1beta1.BackupTargetStatus{
 								Ref: ti.Target.Ref,
-								Stats: []api_v1beta1.HostBackupStats{
+								Stats: []v1beta1.HostBackupStats{
 									{
 										Hostname: opt.backupOptions.Host,
-										Phase:    api_v1beta1.HostBackupFailed,
+										Phase:    v1beta1.HostBackupFailed,
 										Error:    err.Error(),
 									},
 								},
@@ -161,7 +160,7 @@ func NewCmdBackup() *cobra.Command {
 	return cmd
 }
 
-func (opt *options) backupManifests(targetRef api_v1beta1.TargetRef) (*restic.BackupOutput, error) {
+func (opt *options) backupManifests(targetRef v1beta1.TargetRef) (*restic.BackupOutput, error) {
 	var err error
 	opt.setupOptions.StorageSecret, err = opt.kubeClient.CoreV1().Secrets(opt.storageSecret.Namespace).Get(context.TODO(), opt.storageSecret.Name, metav1.GetOptions{})
 	if err != nil {
@@ -200,9 +199,10 @@ func (opt *options) backupManifests(targetRef api_v1beta1.TargetRef) (*restic.Ba
 		return nil, err
 	}
 
-	dumper := manifests.NewDumper()
+	mgOpts := manager.BackupOptions{}
+	mgr := manager.NewBackupManager(mgOpts)
 
-	err = dumper.Dump()
+	err = mgr.Dump()
 	if err != nil {
 		return nil, err
 	}

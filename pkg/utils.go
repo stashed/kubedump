@@ -18,14 +18,15 @@ package pkg
 
 import (
 	"fmt"
-	"k8s.io/client-go/rest"
 	"os"
+	"strings"
+
 	stash "stash.appscode.dev/apimachinery/client/clientset/versioned"
 	"stash.appscode.dev/apimachinery/pkg/restic"
-	"strings"
 
 	shell "gomodules.xyz/go-sh"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	kmapi "kmodules.xyz/client-go/api/v1"
 	appcatalog_cs "kmodules.xyz/custom-resources/client/clientset/versioned"
 )
