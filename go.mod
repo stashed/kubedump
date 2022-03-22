@@ -1,4 +1,4 @@
-module stash.appscode.dev/elasticsearch
+module stash.appscode.dev/manifest-backup
 
 go 1.15
 
@@ -9,13 +9,16 @@ require (
 	gomodules.xyz/go-sh v0.1.0
 	gomodules.xyz/logs v0.0.6
 	gomodules.xyz/x v0.0.13
+	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1
 	k8s.io/client-go v0.21.1
 	k8s.io/klog/v2 v2.9.0
 	kmodules.xyz/client-go v0.0.0-20220308080632-2543b61b64fd
 	kmodules.xyz/custom-resources v0.0.0-20220317043135-5c76c52c975d
 	kmodules.xyz/offshoot-api v0.0.0-20220317044008-01567138fc2f
+	sigs.k8s.io/yaml v1.2.0
 	stash.appscode.dev/apimachinery v0.18.1-0.20220321055929-ee132c17707b
+	stash.appscode.dev/elasticsearch v0.0.0-20220317210913-fc6cd8252e2a
 )
 
 replace bitbucket.org/ww/goautoneg => gomodules.xyz/goautoneg v0.0.0-20120707110453-a547fc61f48d

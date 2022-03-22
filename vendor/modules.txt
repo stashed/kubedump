@@ -211,6 +211,7 @@ gopkg.in/inf.v0
 # gopkg.in/yaml.v2 v2.4.0
 gopkg.in/yaml.v2
 # k8s.io/api v0.21.1 => k8s.io/api v0.21.1
+## explicit
 k8s.io/api/admissionregistration/v1
 k8s.io/api/admissionregistration/v1beta1
 k8s.io/api/apiserverinternal/v1alpha1
@@ -514,7 +515,6 @@ kmodules.xyz/client-go/core/v1
 kmodules.xyz/client-go/discovery
 kmodules.xyz/client-go/dynamic
 kmodules.xyz/client-go/meta
-kmodules.xyz/client-go/tools/backup
 kmodules.xyz/client-go/tools/clusterid
 # kmodules.xyz/custom-resources v0.0.0-20220317043135-5c76c52c975d
 ## explicit
@@ -548,6 +548,7 @@ sigs.k8s.io/structured-merge-diff/v4/schema
 sigs.k8s.io/structured-merge-diff/v4/typed
 sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
+## explicit
 sigs.k8s.io/yaml
 # stash.appscode.dev/apimachinery v0.18.1-0.20220321055929-ee132c17707b
 ## explicit
@@ -576,6 +577,9 @@ stash.appscode.dev/apimachinery/pkg/conditions
 stash.appscode.dev/apimachinery/pkg/invoker
 stash.appscode.dev/apimachinery/pkg/restic
 stash.appscode.dev/apimachinery/pkg/util
+# stash.appscode.dev/elasticsearch v0.0.0-20220317210913-fc6cd8252e2a
+## explicit
+stash.appscode.dev/elasticsearch/pkg
 # bitbucket.org/ww/goautoneg => gomodules.xyz/goautoneg v0.0.0-20120707110453-a547fc61f48d
 # cloud.google.com/go => cloud.google.com/go v0.54.0
 # cloud.google.com/go/bigquery => cloud.google.com/go/bigquery v1.4.0

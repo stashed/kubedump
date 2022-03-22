@@ -2,6 +2,7 @@ package manager
 
 import (
 	"io/ioutil"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"path/filepath"
 
@@ -19,12 +20,15 @@ type BackupManager interface {
 type BackupOptions struct {
 	Ctx               string
 	Config            *rest.Config
+	KubeClient        kubernetes.Interface
 	Sanitize          bool
 	DataDir           string
 	Selector          string
 	Target            v1beta1.TargetRef
 	IncludeDependants bool
-	Storage           DataWriter
+	Storage           Writer
+	Namespace         string
+	AllNamespaces     bool
 }
 
 func NewBackupManager(opt BackupOptions) BackupManager {
@@ -60,13 +64,17 @@ type NamespaceBackupMeta struct {
 	Resources       []ResourceGroup `json:"resources,omitempty"`
 }
 
-type DataWriter interface {
+type Writer interface {
 	Write(string, []byte) error
 }
 
-type FileWriter struct{}
+type fileWriter struct{}
 
-func (w *FileWriter) Write(path string, data []byte) error {
+func NewFileWriter() Writer {
+	return fileWriter{}
+}
+
+func (w fileWriter) Write(path string, data []byte) error {
 	dir := filepath.Dir(path)
 	err := os.MkdirAll(dir, 0o777)
 	if err != nil {
