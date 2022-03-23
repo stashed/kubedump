@@ -19,12 +19,10 @@ package pkg
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	stash "stash.appscode.dev/apimachinery/client/clientset/versioned"
 	"stash.appscode.dev/apimachinery/pkg/restic"
 
-	shell "gomodules.xyz/go-sh"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	kmapi "kmodules.xyz/client-go/api/v1"
@@ -53,7 +51,6 @@ type options struct {
 
 	sanitize bool
 	config   *rest.Config
-	context  string
 
 	invokerKind string
 	invokerName string
@@ -62,25 +59,6 @@ type options struct {
 
 	setupOptions  restic.SetupOptions
 	backupOptions restic.BackupOptions
-}
-type sessionWrapper struct {
-	sh  *shell.Session
-	cmd *restic.Command
-}
-
-func (opt *options) newSessionWrapper(cmd string) *sessionWrapper {
-	return &sessionWrapper{
-		sh: shell.NewSession(),
-		cmd: &restic.Command{
-			Name: cmd,
-		},
-	}
-}
-
-func (session *sessionWrapper) setUserArgs(args string) {
-	for _, arg := range strings.Fields(args) {
-		session.cmd.Args = append(session.cmd.Args, arg)
-	}
 }
 
 func clearDir(dir string) error {

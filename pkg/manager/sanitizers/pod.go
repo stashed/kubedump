@@ -9,12 +9,12 @@ import (
 
 type podSanitizer struct{}
 
-func NewPodSanitizer() Sanitizer {
+func newPodSanitizer() Sanitizer {
 	return podSanitizer{}
 }
 
 func (s podSanitizer) Sanitize(in map[string]interface{}) (map[string]interface{}, error) {
-	ms := NewMetadataSanitizer()
+	ms := newMetadataSanitizer()
 	in, err := ms.Sanitize(in)
 	if err != nil {
 		return nil, err

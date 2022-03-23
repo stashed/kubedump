@@ -8,6 +8,7 @@ require (
 	gomodules.xyz/flags v0.1.3
 	gomodules.xyz/go-sh v0.1.0
 	gomodules.xyz/logs v0.0.6
+	gomodules.xyz/sets v0.2.1
 	gomodules.xyz/x v0.0.13
 	k8s.io/api v0.21.1
 	k8s.io/apimachinery v0.21.1

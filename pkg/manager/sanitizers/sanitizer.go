@@ -1,32 +1,28 @@
 package sanitizers
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
 type Sanitizer interface {
 	Sanitize(in map[string]interface{}) (map[string]interface{}, error)
 }
 
-func NewSanitizer(r metav1.APIResource) Sanitizer {
-	switch r.Kind {
+func NewSanitizer(kind string) Sanitizer {
+	switch kind {
 	case "Pod":
-		return NewPodSanitizer()
+		return newPodSanitizer()
 	case "StatefulSet", "Deployment", "ReplicaSet", "DaemonSet", "ReplicationController", "Job":
-		return NewWorkloadSanitizer()
+		return newWorkloadSanitizer()
 	default:
-		return NewDefaultSanitizer()
+		return newDefaultSanitizer()
 	}
 }
 
 type defaultSanitizer struct{}
 
-func NewDefaultSanitizer() Sanitizer {
+func newDefaultSanitizer() Sanitizer {
 	return defaultSanitizer{}
 }
 
 func (s defaultSanitizer) Sanitize(in map[string]interface{}) (map[string]interface{}, error) {
-	ms := NewMetadataSanitizer()
+	ms := newMetadataSanitizer()
 	in, err := ms.Sanitize(in)
 	if err != nil {
 		return nil, err

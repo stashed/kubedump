@@ -200,7 +200,6 @@ func (opt *options) backupManifests(targetRef v1beta1.TargetRef) (*restic.Backup
 	}
 
 	mgOpts := manager.BackupOptions{
-		Ctx:      opt.context,
 		Config:   opt.config,
 		Sanitize: opt.sanitize,
 		DataDir:  opt.interimDataDir,
@@ -208,9 +207,7 @@ func (opt *options) backupManifests(targetRef v1beta1.TargetRef) (*restic.Backup
 		Storage:  manager.NewFileWriter(),
 	}
 	mgr := manager.NewBackupManager(mgOpts)
-
-	err = mgr.Dump()
-	if err != nil {
+	if err = mgr.Dump(); err != nil {
 		return nil, err
 	}
 

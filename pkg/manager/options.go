@@ -2,7 +2,6 @@ package manager
 
 import (
 	"io/ioutil"
-	"k8s.io/client-go/kubernetes"
 	"os"
 	"path/filepath"
 
@@ -18,25 +17,19 @@ type BackupManager interface {
 }
 
 type BackupOptions struct {
-	Ctx               string
 	Config            *rest.Config
-	KubeClient        kubernetes.Interface
 	Sanitize          bool
 	DataDir           string
 	Selector          string
 	Target            v1beta1.TargetRef
 	IncludeDependants bool
 	Storage           Writer
-	Namespace         string
-	AllNamespaces     bool
 }
 
 func NewBackupManager(opt BackupOptions) BackupManager {
 	switch opt.Target.Kind {
-	case v1beta1.TargetKindEmpty:
-		return newClusterBackupManager(opt)
-	case apis.KindNamespace:
-		return newNamespaceBackupManager(opt)
+	case v1beta1.TargetKindEmpty, apis.KindNamespace:
+		return newGenericResourceDumper(opt)
 	default:
 		return newApplicationBackupManager(opt)
 	}

@@ -1,10 +1,8 @@
 package sanitizers
 
-import "fmt"
-
 type metadataSanitizer struct{}
 
-func NewMetadataSanitizer() Sanitizer {
+func newMetadataSanitizer() Sanitizer {
 	return metadataSanitizer{}
 }
 
@@ -20,40 +18,21 @@ func (s metadataSanitizer) Sanitize(in map[string]interface{}) (map[string]inter
 	delete(meta, "generateName")
 	delete(meta, "generation")
 
-	annotation, ok := meta["annotations"]
+	annotations, ok := meta["annotations"]
 	if ok {
-		annotations, ok := annotation.(map[string]string)
-		if !ok {
-			return nil, fmt.Errorf("failed to parse annotations")
-		}
-		cleanUpDecorators(annotations)
+		meta["annotations"] = cleanUpAnnotations(annotations)
 	}
+	delete(meta, "managedFields")
+
 	in["metadata"] = meta
 	return in, nil
 }
 
-func cleanUpObjectMeta(md interface{}) {
-	meta, ok := md.(map[string]interface{})
+func cleanUpAnnotations(in interface{}) interface{} {
+	m, ok := in.(map[string]string)
 	if !ok {
-		return
+		return in
 	}
-	delete(meta, "creationTimestamp")
-	delete(meta, "resourceVersion")
-	delete(meta, "uid")
-	delete(meta, "generateName")
-	delete(meta, "generation")
-	annotation, ok := meta["annotations"]
-	if !ok {
-		return
-	}
-	annotations, ok := annotation.(map[string]string)
-	if !ok {
-		return
-	}
-	cleanUpDecorators(annotations)
-}
-
-func cleanUpDecorators(m map[string]string) {
 	delete(m, "controller-uid")
 	delete(m, "deployment.kubernetes.io/desired-replicas")
 	delete(m, "deployment.kubernetes.io/max-replicas")
@@ -61,4 +40,5 @@ func cleanUpDecorators(m map[string]string) {
 	delete(m, "pod-template-hash")
 	delete(m, "pv.kubernetes.io/bind-completed")
 	delete(m, "pv.kubernetes.io/bound-by-controller")
+	return m
 }

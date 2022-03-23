@@ -156,6 +156,7 @@ gomodules.xyz/mergo
 # gomodules.xyz/pointer v0.1.0
 gomodules.xyz/pointer
 # gomodules.xyz/sets v0.2.1
+## explicit
 gomodules.xyz/sets
 # gomodules.xyz/wait v0.2.0
 gomodules.xyz/wait

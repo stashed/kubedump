@@ -4,12 +4,12 @@ import "fmt"
 
 type workloadSanitizer struct{}
 
-func NewWorkloadSanitizer() Sanitizer {
+func newWorkloadSanitizer() Sanitizer {
 	return workloadSanitizer{}
 }
 
 func (s workloadSanitizer) Sanitize(in map[string]interface{}) (map[string]interface{}, error) {
-	ms := NewMetadataSanitizer()
+	ms := newMetadataSanitizer()
 	in, err := ms.Sanitize(in)
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func (s workloadSanitizer) Sanitize(in map[string]interface{}) (map[string]inter
 	if !ok {
 		return nil, fmt.Errorf("unable to parse pod template")
 	}
-	ps := NewPodSanitizer()
+	ps := newPodSanitizer()
 	template, err = ps.Sanitize(template)
 	if err != nil {
 		return nil, err
