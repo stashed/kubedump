@@ -24,6 +24,7 @@ type BackupOptions struct {
 	Target            v1beta1.TargetRef
 	IncludeDependants bool
 	Storage           Writer
+	Namespace         string
 }
 
 func NewBackupManager(opt BackupOptions) BackupManager {

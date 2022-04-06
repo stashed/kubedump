@@ -30,6 +30,7 @@ type genericResourceDumper struct {
 	config    *rest.Config
 	sanitize  bool
 	dataDir   string
+	selector  string
 }
 
 func newGenericResourceDumper(opt BackupOptions) BackupManager {
@@ -38,6 +39,7 @@ func newGenericResourceDumper(opt BackupOptions) BackupManager {
 		storage:  opt.Storage,
 		sanitize: opt.Sanitize,
 		dataDir:  opt.DataDir,
+		selector: opt.Selector,
 	}
 	if opt.Target.Kind == apis.KindNamespace {
 		mgr.namespace = opt.Target.Name
@@ -82,7 +84,42 @@ func (opt *genericResourceDumper) dumpAPIResources() error {
 			return err
 		}
 	}
-	return nil
+	m := ClusterBackupMeta{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "BackupMetadata",
+			APIVersion: "stash.appscode.com/v1beta2",
+		},
+		GlobalResources: []ResourceGroup{
+			{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Namespace",
+					APIVersion: "v1",
+				},
+				Instances: []string{
+					"kube-system",
+					"demo",
+					"default",
+				},
+			},
+		},
+		Namespaces: []NamespacedResources{
+			{
+				Name: "kube-system",
+				Resources: []ResourceGroup{
+					{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Deployment",
+							APIVersion: "apps/v1",
+						},
+						Instances: []string{
+							"core-dns",
+						},
+					},
+				},
+			},
+		},
+	}
+	return opt.writeBackupMeta(m)
 }
 
 func (opt *genericResourceDumper) dumpGroup(group *metav1.APIResourceList) error {
@@ -120,8 +157,9 @@ func (opt *genericResourceDumper) dumpResourceInstances(gvr schema.GroupVersionR
 		}
 
 		resp, err := ri.List(context.TODO(), metav1.ListOptions{
-			Limit:    250,
-			Continue: next,
+			Limit:         250,
+			Continue:      next,
+			LabelSelector: opt.selector,
 		})
 		if err != nil {
 			if !kerr.IsNotFound(err) {
@@ -157,7 +195,7 @@ func (opt *genericResourceDumper) processItems(items []unstructured.Unstructured
 		}
 
 		fileName := opt.getFileName(r, isNamespaced)
-		err = opt.storeItem(fileName, data)
+		err = storeItem(fileName, data, opt.storage)
 		if err != nil {
 			return err
 		}
@@ -175,12 +213,16 @@ func (opt *genericResourceDumper) getFileName(r unstructured.Unstructured, isNam
 	return filepath.Join(prefix, r.GetKind(), r.GetName()) + ".yaml"
 }
 
-func (opt *genericResourceDumper) storeItem(fileName string, in map[string]interface{}) error {
+type repository struct {
+	storage Writer
+}
+
+func storeItem(fileName string, in map[string]interface{}, storage Writer) error {
 	data, err := yaml.Marshal(in)
 	if err != nil {
 		return err
 	}
-	err = opt.storage.Write(fileName, data)
+	err = storage.Write(fileName, data)
 	if err != nil {
 		return err
 	}
@@ -193,4 +235,12 @@ func isSubResource(name string) bool {
 
 func hasGetListVerbs(verbs []string) bool {
 	return sets.NewString(verbs...).HasAll("get", "list")
+}
+
+func (opt *genericResourceDumper) writeBackupMeta(m ClusterBackupMeta) error {
+	data, err := yaml.Marshal(m)
+	if err != nil {
+		return err
+	}
+	return opt.storage.Write("metadata.yaml", data)
 }

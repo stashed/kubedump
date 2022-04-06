@@ -2,6 +2,7 @@ package manager_test
 
 import (
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,7 +16,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func Test_genericResource_Dump(t *testing.T) {
+func Test_Dump(t *testing.T) {
 	tests := []struct {
 		name    string
 		options manager.BackupOptions
@@ -43,6 +44,46 @@ func Test_genericResource_Dump(t *testing.T) {
 					Name:       "kube-system",
 				},
 				Sanitize: true,
+			},
+		},
+		{
+			name:    "Dump by label selector",
+			wantErr: false,
+			options: manager.BackupOptions{
+				Target: v1beta1.TargetRef{
+					APIVersion: "v1",
+					Kind:       apis.KindNamespace,
+					Name:       "kube-system",
+				},
+				Sanitize: true,
+				Selector: getTestLabelSelector(),
+			},
+		},
+		{
+			name:    "Dump Deployment",
+			wantErr: false,
+			options: manager.BackupOptions{
+				Target: v1beta1.TargetRef{
+					APIVersion: "apps/v1",
+					Kind:       apis.KindDeployment,
+					Name:       "coredns",
+				},
+				Sanitize:  true,
+				Namespace: "kube-system",
+			},
+		},
+		{
+			name:    "Dump Deployment with dependants",
+			wantErr: false,
+			options: manager.BackupOptions{
+				Target: v1beta1.TargetRef{
+					APIVersion: "apps/v1",
+					Kind:       apis.KindDeployment,
+					Name:       "coredns",
+				},
+				Sanitize:          true,
+				Namespace:         "kube-system",
+				IncludeDependants: true,
 			},
 		},
 	}
@@ -81,4 +122,17 @@ func (w stdOutWriter) Write(key string, value []byte) error {
 func getRestConfig() (*rest.Config, error) {
 	path := os.Getenv("HOME") + "/.kube/config"
 	return clientcmd.BuildConfigFromFlags("", path)
+}
+
+func getTestLabelSelector() string {
+	selector := metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{
+			{
+				Key:      "k8s-app",
+				Operator: metav1.LabelSelectorOpIn,
+				Values:   []string{"kube-dns"},
+			},
+		},
+	}
+	return metav1.FormatLabelSelector(&selector)
 }
