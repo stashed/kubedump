@@ -8,7 +8,6 @@ import (
 	"stash.appscode.dev/apimachinery/apis"
 	"stash.appscode.dev/apimachinery/apis/stash/v1beta1"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -30,32 +29,10 @@ type BackupOptions struct {
 func NewBackupManager(opt BackupOptions) BackupManager {
 	switch opt.Target.Kind {
 	case v1beta1.TargetKindEmpty, apis.KindNamespace:
-		return newGenericResourceDumper(opt)
+		return newGenericResourceBackupManager(opt)
 	default:
 		return newApplicationBackupManager(opt)
 	}
-}
-
-type ClusterBackupMeta struct {
-	metav1.TypeMeta `json:",inline"`
-	GlobalResources []ResourceGroup       `json:"globalResources,omitempty"`
-	Namespaces      []NamespacedResources `json:"namespaces,omitempty"`
-}
-
-type ResourceGroup struct {
-	metav1.TypeMeta `json:",inline"`
-	Instances       []string `json:"instances,omitempty"`
-}
-
-type NamespacedResources struct {
-	Name      string          `json:"name,omitempty"`
-	Resources []ResourceGroup `json:"resources,omitempty"`
-}
-
-type NamespaceBackupMeta struct {
-	metav1.TypeMeta `json:",inline"`
-	Name            string          `json:"name,omitempty"`
-	Resources       []ResourceGroup `json:"resources,omitempty"`
 }
 
 type Writer interface {

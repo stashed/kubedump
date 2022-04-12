@@ -18520,6 +18520,22 @@ func schema_kmodulesxyz_offshoot_api_api_v1_PodRuntimeSettings(ref common.Refere
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
+					"podAnnotations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PodAnnotations are the annotations that will be attached with the respective Pod",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
 					"nodeSelector": {
 						SchemaProps: spec.SchemaProps{
 							Description: "NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node's labels for the pod to be scheduled on that node. More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/",
@@ -18541,6 +18557,22 @@ func schema_kmodulesxyz_offshoot_api_api_v1_PodRuntimeSettings(ref common.Refere
 							Description: "ServiceAccountName is the name of the ServiceAccount to use to run this pod. More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
 							Type:        []string{"string"},
 							Format:      "",
+						},
+					},
+					"serviceAccountAnnotations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServiceAccountAnnotations are the annotations that will be attached with the respective ServiceAccount",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
 						},
 					},
 					"automountServiceAccountToken": {
@@ -19614,10 +19646,18 @@ func schema_apimachinery_apis_stash_v1beta1_BackupBlueprintSpec(ref common.Refer
 							Ref:         ref("stash.appscode.dev/apimachinery/apis/stash/v1alpha1.UsagePolicy"),
 						},
 					},
+					"repoNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RepoNamespace specifies the namespace where the Repository will be created for the respective target",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"schedule": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Description: "Schedule specifies the default schedule for backup. You can overwrite this schedule for a particular target using 'stash.appscode.com/schedule' annotation.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"task": {

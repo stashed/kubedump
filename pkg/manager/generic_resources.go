@@ -1,40 +1,31 @@
 package manager
 
 import (
-	"context"
 	"path/filepath"
 	"strings"
 
 	"stash.appscode.dev/apimachinery/apis"
-	"stash.appscode.dev/manifest-backup/pkg/manager/sanitizers"
+	"stash.appscode.dev/manifest-backup/pkg/sanitizers"
 
 	"gomodules.xyz/sets"
-	kerr "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 )
 
-type genericResourceDumper struct {
-	disc      discovery.DiscoveryInterface
-	di        dynamic.Interface
-	namespace string
-	storage   Writer
-	config    *rest.Config
-	sanitize  bool
-	dataDir   string
-	selector  string
+type genericResourceBackupManager struct {
+	namespace      string
+	storage        Writer
+	config         *rest.Config
+	sanitize       bool
+	dataDir        string
+	selector       string
+	useRootDataDir bool
 }
 
-func newGenericResourceDumper(opt BackupOptions) BackupManager {
-	mgr := genericResourceDumper{
+func newGenericResourceBackupManager(opt BackupOptions) BackupManager {
+	mgr := genericResourceBackupManager{
 		config:   opt.Config,
 		storage:  opt.Storage,
 		sanitize: opt.Sanitize,
@@ -43,145 +34,36 @@ func newGenericResourceDumper(opt BackupOptions) BackupManager {
 	}
 	if opt.Target.Kind == apis.KindNamespace {
 		mgr.namespace = opt.Target.Name
+		mgr.useRootDataDir = true
 	}
 	return mgr
 }
 
-func (opt genericResourceDumper) Dump() error {
-	var err error
-	opt.config.QPS = 1e6
-	opt.config.Burst = 1e6
-	if err := rest.SetKubernetesDefaults(opt.config); err != nil {
-		return err
-	}
-	opt.config.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
-	if opt.config.UserAgent == "" {
-		opt.config.UserAgent = rest.DefaultKubernetesUserAgent()
+func (opt genericResourceBackupManager) Dump() error {
+	processor := itemDumper{
+		sanitize:       opt.sanitize,
+		dataDir:        opt.dataDir,
+		storage:        opt.storage,
+		useRootDataDir: opt.useRootDataDir,
 	}
 
-	opt.disc, err = discovery.NewDiscoveryClientForConfig(opt.config)
-	if err != nil {
-		return err
+	rp := resourceProcessor{
+		config:        opt.config,
+		namespace:     opt.namespace,
+		selector:      opt.selector,
+		itemProcessor: processor,
 	}
-
-	opt.di, err = dynamic.NewForConfig(opt.config)
-	if err != nil {
-		return err
-	}
-
-	return opt.dumpAPIResources()
+	return rp.processAPIResources()
 }
 
-func (opt *genericResourceDumper) dumpAPIResources() error {
-	resList, err := opt.disc.ServerPreferredResources()
-	if err != nil {
-		return err
-	}
-
-	for _, group := range resList {
-		err := opt.dumpGroup(group)
-		if err != nil {
-			return err
-		}
-	}
-	m := ClusterBackupMeta{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "BackupMetadata",
-			APIVersion: "stash.appscode.com/v1beta2",
-		},
-		GlobalResources: []ResourceGroup{
-			{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Namespace",
-					APIVersion: "v1",
-				},
-				Instances: []string{
-					"kube-system",
-					"demo",
-					"default",
-				},
-			},
-		},
-		Namespaces: []NamespacedResources{
-			{
-				Name: "kube-system",
-				Resources: []ResourceGroup{
-					{
-						TypeMeta: metav1.TypeMeta{
-							Kind:       "Deployment",
-							APIVersion: "apps/v1",
-						},
-						Instances: []string{
-							"core-dns",
-						},
-					},
-				},
-			},
-		},
-	}
-	return opt.writeBackupMeta(m)
+type itemDumper struct {
+	sanitize       bool
+	dataDir        string
+	storage        Writer
+	useRootDataDir bool
 }
 
-func (opt *genericResourceDumper) dumpGroup(group *metav1.APIResourceList) error {
-	gv, err := schema.ParseGroupVersion(group.GroupVersion)
-	if err != nil {
-		return err
-	}
-
-	for _, res := range group.APIResources {
-		if isSubResource(res.Name) || !hasGetListVerbs(res.Verbs) {
-			continue
-		}
-		// don't process non-namespaced resources when target is a namespace
-		if !res.Namespaced && opt.namespace != "" {
-			continue
-		}
-
-		err := opt.dumpResourceInstances(gv.WithResource(res.Name), res.Namespaced)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (opt *genericResourceDumper) dumpResourceInstances(gvr schema.GroupVersionResource, isNamespaced bool) error {
-	klog.V(5).Infof("Dumping: ", gvr.String())
-	var next string
-	for {
-		var ri dynamic.ResourceInterface
-		if opt.namespace != "" {
-			ri = opt.di.Resource(gvr).Namespace(opt.namespace)
-		} else {
-			ri = opt.di.Resource(gvr)
-		}
-
-		resp, err := ri.List(context.TODO(), metav1.ListOptions{
-			Limit:         250,
-			Continue:      next,
-			LabelSelector: opt.selector,
-		})
-		if err != nil {
-			if !kerr.IsNotFound(err) {
-				return err
-			}
-			return nil
-		}
-
-		err = opt.processItems(resp.Items, isNamespaced)
-		if err != nil {
-			return err
-		}
-
-		next = resp.GetContinue()
-		if next == "" {
-			break
-		}
-	}
-	return nil
-}
-
-func (opt *genericResourceDumper) processItems(items []unstructured.Unstructured, isNamespaced bool) error {
+func (opt itemDumper) Process(items []unstructured.Unstructured, _ schema.GroupVersionResource) error {
 	var err error
 	for _, r := range items {
 		data := r.Object
@@ -194,7 +76,7 @@ func (opt *genericResourceDumper) processItems(items []unstructured.Unstructured
 			delete(data, "status")
 		}
 
-		fileName := opt.getFileName(r, isNamespaced)
+		fileName := opt.getFileName(r)
 		err = storeItem(fileName, data, opt.storage)
 		if err != nil {
 			return err
@@ -203,18 +85,18 @@ func (opt *genericResourceDumper) processItems(items []unstructured.Unstructured
 	return nil
 }
 
-func (opt *genericResourceDumper) getFileName(r unstructured.Unstructured, isNamespaced bool) string {
+func (opt *itemDumper) getFileName(r unstructured.Unstructured) string {
+	if opt.useRootDataDir {
+		return filepath.Join(opt.dataDir, r.GetKind(), r.GetName()) + ".yaml"
+	}
+
 	prefix := ""
-	if isNamespaced {
+	if r.GetNamespace() != "" {
 		prefix = filepath.Join(opt.dataDir, "namespaces", r.GetNamespace())
 	} else {
 		prefix = filepath.Join(opt.dataDir, "global")
 	}
 	return filepath.Join(prefix, r.GetKind(), r.GetName()) + ".yaml"
-}
-
-type repository struct {
-	storage Writer
 }
 
 func storeItem(fileName string, in map[string]interface{}, storage Writer) error {
@@ -235,12 +117,4 @@ func isSubResource(name string) bool {
 
 func hasGetListVerbs(verbs []string) bool {
 	return sets.NewString(verbs...).HasAll("get", "list")
-}
-
-func (opt *genericResourceDumper) writeBackupMeta(m ClusterBackupMeta) error {
-	data, err := yaml.Marshal(m)
-	if err != nil {
-		return err
-	}
-	return opt.storage.Write("metadata.yaml", data)
 }
