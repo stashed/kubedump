@@ -44,7 +44,6 @@ func NewCmdBackup() *cobra.Command {
 		masterURL      string
 		kubeconfigPath string
 		opt            = options{
-			waitTimeout: 300,
 			setupOptions: restic.SetupOptions{
 				ScratchDir:  restic.DefaultScratchDir,
 				EnableCache: false,
@@ -57,10 +56,10 @@ func NewCmdBackup() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:               "backup-manifest",
-		Short:             "Takes a backup of Elasticsearch DB",
+		Short:             "Takes a backup of Kubernetes manifests",
 		DisableAutoGenTag: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			flags.EnsureRequiredFlags(cmd, "appbinding", "provider", "storage-secret-name", "storage-secret-namespace")
+			flags.EnsureRequiredFlags(cmd, "provider", "storage-secret-name", "storage-secret-namespace")
 			time.Sleep(time.Second * 5)
 
 			// prepare client
@@ -119,9 +118,6 @@ func NewCmdBackup() *cobra.Command {
 			return nil
 		},
 	}
-
-	cmd.Flags().Int32Var(&opt.waitTimeout, "wait-timeout", opt.waitTimeout, "Number of seconds to wait for the database to be ready")
-
 	cmd.Flags().StringVar(&masterURL, "master", masterURL, "The address of the Kubernetes API server (overrides any value in kubeconfig)")
 	cmd.Flags().StringVar(&kubeconfigPath, "kubeconfig", kubeconfigPath, "Path to kubeconfig file with authorization information (the master location is set by the master flag).")
 	cmd.Flags().StringVar(&opt.namespace, "namespace", "default", "Namespace of Backup/Restore Session")
@@ -139,7 +135,6 @@ func NewCmdBackup() *cobra.Command {
 	cmd.Flags().Int64Var(&opt.setupOptions.MaxConnections, "max-connections", opt.setupOptions.MaxConnections, "Specify maximum concurrent connections for GCS, Azure and B2 backend")
 
 	cmd.Flags().StringVar(&opt.backupOptions.Host, "hostname", opt.backupOptions.Host, "Name of the host machine")
-	cmd.Flags().StringVar(&opt.interimDataDir, "interim-data-dir", opt.interimDataDir, "Directory where the targeted data will be stored temporarily before uploading to the backend.")
 	cmd.Flags().StringVar(&opt.invokerKind, "invoker-kind", opt.invokerKind, "Kind of the backup invoker")
 	cmd.Flags().StringVar(&opt.invokerName, "invoker-name", opt.invokerName, "Name of the respective backup invoker")
 	cmd.Flags().StringVar(&opt.targetKind, "target-kind", opt.targetKind, "Kind of the Target")
@@ -156,6 +151,7 @@ func NewCmdBackup() *cobra.Command {
 	cmd.Flags().BoolVar(&opt.backupOptions.RetentionPolicy.DryRun, "retention-dry-run", opt.backupOptions.RetentionPolicy.DryRun, "Specify whether to test retention policy without deleting actual data")
 
 	cmd.Flags().StringVar(&opt.outputDir, "output-dir", opt.outputDir, "Directory where output.json file will be written (keep empty if you don't need to write output in file)")
+	cmd.Flags().BoolVar(&opt.sanitize, "output-dir", true, "Specify whether to remove the decorators from the manifest (default is true)")
 
 	return cmd
 }
@@ -194,15 +190,16 @@ func (opt *options) backupManifests(targetRef v1beta1.TargetRef) (*restic.Backup
 		return nil, err
 	}
 
-	klog.Infoln("Cleaning up directory: ", opt.interimDataDir)
-	if err := clearDir(opt.interimDataDir); err != nil {
+	klog.Infoln("Cleaning up directory: ", opt.dataDir)
+	opt.dataDir = filepath.Join(opt.setupOptions.ScratchDir, "manifests")
+	if err := clearDir(opt.dataDir); err != nil {
 		return nil, err
 	}
 
 	mgOpts := manager.BackupOptions{
 		Config:   opt.config,
 		Sanitize: opt.sanitize,
-		DataDir:  opt.interimDataDir,
+		DataDir:  opt.dataDir,
 		Target:   targetRef,
 		Storage:  manager.NewFileWriter(),
 	}
@@ -212,7 +209,7 @@ func (opt *options) backupManifests(targetRef v1beta1.TargetRef) (*restic.Backup
 	}
 
 	// dumped data has been stored in the interim data dir. Now, we will backup this directory using Stash.
-	opt.backupOptions.BackupPaths = []string{opt.interimDataDir}
+	opt.backupOptions.BackupPaths = []string{opt.dataDir}
 
 	// init restic wrapper
 	resticWrapper, err := restic.NewResticWrapper(opt.setupOptions)

@@ -1,3 +1,19 @@
+/*
+Copyright AppsCode Inc. and Contributors
+
+Licensed under the AppsCode Free Trial License 1.0.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://github.com/appscode/licenses/raw/1.0.0/AppsCode-Free-Trial-1.0.0.md
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package manager
 
 import (
@@ -19,7 +35,6 @@ import (
 
 type applicationBackupManager struct {
 	di                dynamic.Interface
-	namespace         string
 	storage           Writer
 	config            *rest.Config
 	sanitize          bool
@@ -36,7 +51,6 @@ func newApplicationBackupManager(opt BackupOptions) BackupManager {
 		sanitize:          opt.Sanitize,
 		dataDir:           opt.DataDir,
 		selector:          opt.Selector,
-		namespace:         opt.Namespace,
 		includeDependants: opt.IncludeDependants,
 		target:            opt.Target,
 	}
@@ -104,14 +118,14 @@ func (opt *applicationBackupManager) getRootObject(gvr schema.GroupVersionResour
 	if err != nil {
 		return nil, err
 	}
-	ri := opt.di.Resource(gvr).Namespace(opt.namespace)
+	ri := opt.di.Resource(gvr).Namespace(opt.target.Namespace)
 	return ri.Get(context.TODO(), opt.target.Name, metav1.GetOptions{})
 }
 
 func (opt *applicationBackupManager) generateDependencyTree(tb *treeBuilder) error {
 	rp := resourceProcessor{
 		config:        opt.config,
-		namespace:     opt.namespace,
+		namespace:     opt.target.Namespace,
 		selector:      opt.selector,
 		itemProcessor: tb,
 	}
@@ -196,7 +210,7 @@ func (opt *applicationBackupManager) dumpItem(r resourceRef, prefix string) (typ
 func (opt *applicationBackupManager) getFileName(r *unstructured.Unstructured, prefix string) string {
 	if opt.target.Kind == r.GetKind() &&
 		opt.target.Name == r.GetName() &&
-		opt.namespace == r.GetNamespace() {
+		opt.target.Namespace == r.GetNamespace() {
 		return filepath.Join(prefix, r.GetName()) + ".yaml"
 	}
 	return filepath.Join(prefix, r.GetKind(), r.GetName(), r.GetName()) + ".yaml"

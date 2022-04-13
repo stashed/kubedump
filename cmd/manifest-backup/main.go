@@ -21,7 +21,7 @@ import (
 	"runtime"
 
 	_ "stash.appscode.dev/apimachinery/client/clientset/versioned/fake"
-	"stash.appscode.dev/elasticsearch/pkg"
+	"stash.appscode.dev/manifest-backup/pkg"
 
 	"gomodules.xyz/logs"
 	_ "k8s.io/client-go/kubernetes/fake"

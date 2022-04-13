@@ -137,7 +137,7 @@ func (inv *BackupConfigurationInvoker) GetTargetInfo() []BackupTargetInfo {
 	return []BackupTargetInfo{
 		{
 			Task:                  inv.backupConfig.Spec.Task,
-			Target:                withDefaultTarget(inv.backupConfig.Spec.Target),
+			Target:                getBackupTarget(inv.backupConfig.Spec.Target, inv.backupConfig.Namespace),
 			RuntimeSettings:       inv.backupConfig.Spec.RuntimeSettings,
 			TempDir:               inv.backupConfig.Spec.TempDir,
 			InterimVolumeTemplate: inv.backupConfig.Spec.InterimVolumeTemplate,
@@ -236,13 +236,4 @@ func (inv *BackupConfigurationInvoker) GetSummary(target v1beta1.TargetRef, sess
 		Name:     inv.backupConfig.Name,
 	}
 	return summary
-}
-
-func withDefaultTarget(target *v1beta1.BackupTarget) *v1beta1.BackupTarget {
-	if target != nil {
-		return target
-	}
-	return &v1beta1.BackupTarget{
-		Ref: v1beta1.EmptyTargetRef(),
-	}
 }

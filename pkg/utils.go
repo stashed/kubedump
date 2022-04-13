@@ -29,14 +29,6 @@ import (
 	appcatalog_cs "kmodules.xyz/custom-resources/client/clientset/versioned"
 )
 
-const (
-	ESUser              = "ADMIN_USERNAME"
-	ESPassword          = "ADMIN_PASSWORD"
-	MultiElasticDumpCMD = "multielasticdump"
-	ESCACertFile        = "root.pem"
-	ESAuthFile          = "auth.txt"
-)
-
 type options struct {
 	kubeClient    kubernetes.Interface
 	stashClient   stash.Interface
@@ -44,13 +36,12 @@ type options struct {
 
 	namespace         string
 	backupSessionName string
-	interimDataDir    string
 	outputDir         string
 	storageSecret     kmapi.ObjectReference
-	waitTimeout       int32
 
 	sanitize bool
 	config   *rest.Config
+	dataDir  string
 
 	invokerKind string
 	invokerName string

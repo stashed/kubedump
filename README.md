@@ -1,5 +1,5 @@
-[![Go Report Card](https://goreportcard.com/badge/stash.appscode.dev/manifest-backup)](https://goreportcard.com/report/stash.appscode.dev/elasticsearch)
-![CI](https://github.com/stashed/elasticsearch/workflows/CI/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/stash.appscode.dev/manifest-backup)](https://goreportcard.com/report/stash.appscode.dev/manifest-backup)
+![CI](https://github.com/stashed/manifest-backup/workflows/CI/badge.svg)
 [![Docker Pulls](https://img.shields.io/docker/pulls/stashed/manifest-backup.svg)](https://hub.docker.com/r/stashed/manifest-backup/)
 [![Slack](https://shields.io/badge/Join_Slack-salck?color=4A154B&logo=slack)](https://slack.appscode.com)
 [![Twitter](https://img.shields.io/twitter/follow/kubestash.svg?style=social&logo=twitter&label=Follow)](https://twitter.com/intent/follow?screen_name=KubeStash)
