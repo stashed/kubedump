@@ -15,9 +15,9 @@ require (
 	k8s.io/klog/v2 v2.9.0
 	kmodules.xyz/client-go v0.0.0-20220404224906-af7b092cfac5
 	kmodules.xyz/custom-resources v0.0.0-20220317220154-7beb809b1f5e
-	kmodules.xyz/offshoot-api v0.0.0-20220329041708-c076b2bcb0f8
+	kmodules.xyz/offshoot-api v0.0.0-20220419215722-c7fc995091d3
 	sigs.k8s.io/yaml v1.3.0
-	stash.appscode.dev/apimachinery v0.19.1-0.20220413043008-5fa3647ef8f8
+	stash.appscode.dev/apimachinery v0.19.1-0.20220425033401-c840c081133c
 )
 
 replace bitbucket.org/ww/goautoneg => gomodules.xyz/goautoneg v0.0.0-20120707110453-a547fc61f48d

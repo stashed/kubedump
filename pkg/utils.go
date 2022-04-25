@@ -20,33 +20,33 @@ import (
 	"fmt"
 	"os"
 
+	"stash.appscode.dev/apimachinery/apis/stash/v1beta1"
 	stash "stash.appscode.dev/apimachinery/client/clientset/versioned"
 	"stash.appscode.dev/apimachinery/pkg/restic"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	kmapi "kmodules.xyz/client-go/api/v1"
-	appcatalog_cs "kmodules.xyz/custom-resources/client/clientset/versioned"
 )
 
 type options struct {
-	kubeClient    kubernetes.Interface
-	stashClient   stash.Interface
-	catalogClient appcatalog_cs.Interface
+	kubeClient  kubernetes.Interface
+	stashClient stash.Interface
 
 	namespace         string
 	backupSessionName string
 	outputDir         string
 	storageSecret     kmapi.ObjectReference
 
-	sanitize bool
-	config   *rest.Config
-	dataDir  string
+	sanitize          bool
+	config            *rest.Config
+	dataDir           string
+	selector          string
+	includeDependants bool
 
 	invokerKind string
 	invokerName string
-	targetKind  string
-	targetName  string
+	targetRef   v1beta1.TargetRef
 
 	setupOptions  restic.SetupOptions
 	backupOptions restic.BackupOptions

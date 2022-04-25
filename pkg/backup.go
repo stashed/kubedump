@@ -35,7 +35,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
-	appcatalog_cs "kmodules.xyz/custom-resources/client/clientset/versioned"
 	v1 "kmodules.xyz/offshoot-api/api/v1"
 )
 
@@ -81,10 +80,6 @@ func NewCmdBackup() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			opt.catalogClient, err = appcatalog_cs.NewForConfig(config)
-			if err != nil {
-				return err
-			}
 
 			inv, err := invoker.NewBackupInvoker(opt.stashClient, opt.invokerKind, opt.invokerName, opt.namespace)
 			if err != nil {
@@ -92,7 +87,7 @@ func NewCmdBackup() *cobra.Command {
 			}
 
 			for _, ti := range inv.GetTargetInfo() {
-				if ti.Target != nil && targetMatched(ti.Target.Ref, opt.targetKind, opt.targetName) {
+				if ti.Target != nil && opt.targetMatched(ti.Target.Ref, opt.targetRef) {
 					var backupOutput *restic.BackupOutput
 					backupOutput, err = opt.backupManifests(ti.Target.Ref)
 					if err != nil {
@@ -137,8 +132,9 @@ func NewCmdBackup() *cobra.Command {
 	cmd.Flags().StringVar(&opt.backupOptions.Host, "hostname", opt.backupOptions.Host, "Name of the host machine")
 	cmd.Flags().StringVar(&opt.invokerKind, "invoker-kind", opt.invokerKind, "Kind of the backup invoker")
 	cmd.Flags().StringVar(&opt.invokerName, "invoker-name", opt.invokerName, "Name of the respective backup invoker")
-	cmd.Flags().StringVar(&opt.targetKind, "target-kind", opt.targetKind, "Kind of the Target")
-	cmd.Flags().StringVar(&opt.targetName, "target-name", opt.targetName, "Name of the Target")
+	cmd.Flags().StringVar(&opt.targetRef.Kind, "target-kind", opt.targetRef.Kind, "Kind of the Target")
+	cmd.Flags().StringVar(&opt.targetRef.Name, "target-name", opt.targetRef.Name, "Name of the Target")
+	cmd.Flags().StringVar(&opt.targetRef.Namespace, "target-namespace", opt.targetRef.Namespace, "Namespace of the Target")
 
 	cmd.Flags().Int64Var(&opt.backupOptions.RetentionPolicy.KeepLast, "retention-keep-last", opt.backupOptions.RetentionPolicy.KeepLast, "Specify value for retention strategy")
 	cmd.Flags().Int64Var(&opt.backupOptions.RetentionPolicy.KeepHourly, "retention-keep-hourly", opt.backupOptions.RetentionPolicy.KeepHourly, "Specify value for retention strategy")
@@ -151,7 +147,10 @@ func NewCmdBackup() *cobra.Command {
 	cmd.Flags().BoolVar(&opt.backupOptions.RetentionPolicy.DryRun, "retention-dry-run", opt.backupOptions.RetentionPolicy.DryRun, "Specify whether to test retention policy without deleting actual data")
 
 	cmd.Flags().StringVar(&opt.outputDir, "output-dir", opt.outputDir, "Directory where output.json file will be written (keep empty if you don't need to write output in file)")
-	cmd.Flags().BoolVar(&opt.sanitize, "output-dir", true, "Specify whether to remove the decorators from the manifest (default is true)")
+
+	cmd.Flags().BoolVar(&opt.sanitize, "sanitize", true, "Specify whether to remove the decorators from the manifest (default is true)")
+	cmd.Flags().StringVar(&opt.selector, "label-selector", "", "Specify a label selector to filter the resources.")
+	cmd.Flags().BoolVar(&opt.includeDependants, "include-dependants", false, "Specify whether to backup the dependants object along with their parent.")
 
 	return cmd
 }
@@ -197,11 +196,13 @@ func (opt *options) backupManifests(targetRef v1beta1.TargetRef) (*restic.Backup
 	}
 
 	mgOpts := manager.BackupOptions{
-		Config:   opt.config,
-		Sanitize: opt.sanitize,
-		DataDir:  opt.dataDir,
-		Target:   targetRef,
-		Storage:  manager.NewFileWriter(),
+		Config:            opt.config,
+		Sanitize:          opt.sanitize,
+		DataDir:           opt.dataDir,
+		Target:            targetRef,
+		Selector:          opt.selector,
+		IncludeDependants: opt.includeDependants,
+		Storage:           manager.NewFileWriter(),
 	}
 	mgr := manager.NewBackupManager(mgOpts)
 	if err = mgr.Dump(); err != nil {
@@ -220,6 +221,9 @@ func (opt *options) backupManifests(targetRef v1beta1.TargetRef) (*restic.Backup
 	return resticWrapper.RunBackup(opt.backupOptions, targetRef)
 }
 
-func targetMatched(tref v1beta1.TargetRef, expectedKind, expectedName string) bool {
-	return tref.Kind == expectedKind && tref.Name == expectedName
+func (opt *options) targetMatched(tref v1beta1.TargetRef, expected v1beta1.TargetRef) bool {
+	if expected.Namespace == "" {
+		expected.Namespace = opt.namespace
+	}
+	return tref.Kind == expected.Kind && tref.Name == expected.Name && tref.Namespace == expected.Namespace
 }
