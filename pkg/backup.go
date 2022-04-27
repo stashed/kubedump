@@ -222,7 +222,7 @@ func (opt *options) backupManifests(targetRef v1beta1.TargetRef) (*restic.Backup
 }
 
 func (opt *options) targetMatched(tref v1beta1.TargetRef, expected v1beta1.TargetRef) bool {
-	if expected.Namespace == "" {
+	if expected.Namespace == "" && tref.Namespace != "" {
 		expected.Namespace = opt.namespace
 	}
 	return tref.Kind == expected.Kind && tref.Name == expected.Name && tref.Namespace == expected.Namespace
