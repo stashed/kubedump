@@ -17,7 +17,6 @@ limitations under the License.
 package manager_test
 
 import (
-	"k8s.io/client-go/util/homedir"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -29,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 )
 
 func Test_Dump(t *testing.T) {
