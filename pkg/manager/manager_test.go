@@ -17,10 +17,7 @@ limitations under the License.
 package manager_test
 
 import (
-	"fmt"
-	"gomodules.xyz/go-sh"
 	"k8s.io/client-go/util/homedir"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -139,15 +136,6 @@ func Test_Dump(t *testing.T) {
 
 func getRestConfig() (*rest.Config, error) {
 	path := filepath.Join(homedir.HomeDir(), "/.kube/config")
-	fmt.Println("kubeconfigPath: ", path)
-	fmt.Println("HOME: ", os.Getenv("HOME"))
-
-	_ = sh.Command("ls", "/.kube").Run()
-	file, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("File: ", file.Name())
 	return clientcmd.BuildConfigFromFlags("", path)
 }
 

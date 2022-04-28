@@ -34,9 +34,18 @@ jobs:
         with:
           version: v0.12.0
           config: hack/kubernetes/kind.yaml
+      - name: Testing
+        run: |
+          kubectl cluster-info
+          kubectl get pods -n kube-system
+          echo "current-context:" $(kubectl config current-context)
+          echo "environment-kubeconfig:" ${KUBECONFIG}
+          echo "environment-home:" ${HOME}
 
       - name: Run checks
         run: |
+          echo "KubeConfig:" ${KUBECONFIG}
+          ls -lah
           make ci
 
       - name: Build
