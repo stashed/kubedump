@@ -47,7 +47,9 @@ jobs:
           HOME: ${HOME}
         run: |
           echo "KubeConfig:" ${KUBECONFIG}
-          ls -lah ${HOME}
+          ls -lah /home/runner
+          export HOME=/home/runner
+          export KUBECONFIG=/home/runner/.kube/config
           make ci
 
       - name: Build
