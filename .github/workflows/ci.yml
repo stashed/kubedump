@@ -43,9 +43,11 @@ jobs:
           echo "environment-home:" ${HOME}
 
       - name: Run checks
+        env:
+          HOME: ${HOME}
         run: |
           echo "KubeConfig:" ${KUBECONFIG}
-          ls -lah
+          ls -lah ${HOME}
           make ci
 
       - name: Build
