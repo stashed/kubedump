@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 
 	"stash.appscode.dev/apimachinery/apis/stash/v1beta1"
-	"stash.appscode.dev/manifest-backup/pkg/sanitizers"
+	"stash.appscode.dev/kubedump/pkg/sanitizers"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

@@ -24,7 +24,7 @@ import (
 
 	"stash.appscode.dev/apimachinery/apis"
 	"stash.appscode.dev/apimachinery/apis/stash/v1beta1"
-	"stash.appscode.dev/manifest-backup/pkg/manager"
+	"stash.appscode.dev/kubedump/pkg/manager"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -123,7 +123,7 @@ func Test_Dump(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			tt.options.DataDir = filepath.Join("/tmp/manifests", strings.ReplaceAll(tt.name, " ", "_"))
+			tt.options.DataDir = filepath.Join("/tmp/resources", strings.ReplaceAll(tt.name, " ", "_"))
 			tt.options.Storage = manager.NewFileWriter()
 
 			mgr := manager.NewBackupManager(tt.options)

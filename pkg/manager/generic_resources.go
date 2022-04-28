@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"stash.appscode.dev/apimachinery/apis"
-	"stash.appscode.dev/manifest-backup/pkg/sanitizers"
+	"stash.appscode.dev/kubedump/pkg/sanitizers"
 
 	"gomodules.xyz/sets"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

@@ -26,7 +26,7 @@ import (
 	"stash.appscode.dev/apimachinery/pkg/invoker"
 	"stash.appscode.dev/apimachinery/pkg/restic"
 	api_util "stash.appscode.dev/apimachinery/pkg/util"
-	"stash.appscode.dev/manifest-backup/pkg/manager"
+	"stash.appscode.dev/kubedump/pkg/manager"
 
 	"github.com/spf13/cobra"
 	license "go.bytebuilders.dev/license-verifier/kubernetes"
@@ -54,8 +54,8 @@ func NewCmdBackup() *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:               "backup-manifest",
-		Short:             "Takes a backup of Kubernetes manifests",
+		Use:               "backup",
+		Short:             "Takes a backup of Kubernetes resources",
 		DisableAutoGenTag: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			flags.EnsureRequiredFlags(cmd, "provider", "storage-secret-name", "storage-secret-namespace")
@@ -89,7 +89,7 @@ func NewCmdBackup() *cobra.Command {
 			for _, ti := range inv.GetTargetInfo() {
 				if ti.Target != nil && opt.targetMatched(ti.Target.Ref, opt.targetRef) {
 					var backupOutput *restic.BackupOutput
-					backupOutput, err = opt.backupManifests(ti.Target.Ref)
+					backupOutput, err = opt.backupResources(ti.Target.Ref)
 					if err != nil {
 						backupOutput = &restic.BackupOutput{
 							BackupTargetStatus: v1beta1.BackupTargetStatus{
@@ -148,14 +148,14 @@ func NewCmdBackup() *cobra.Command {
 
 	cmd.Flags().StringVar(&opt.outputDir, "output-dir", opt.outputDir, "Directory where output.json file will be written (keep empty if you don't need to write output in file)")
 
-	cmd.Flags().BoolVar(&opt.sanitize, "sanitize", true, "Specify whether to remove the decorators from the manifest (default is true)")
+	cmd.Flags().BoolVar(&opt.sanitize, "sanitize", true, "Specify whether to remove the decorators from the resource YAML (default is true)")
 	cmd.Flags().StringVar(&opt.selector, "label-selector", "", "Specify a label selector to filter the resources.")
 	cmd.Flags().BoolVar(&opt.includeDependants, "include-dependants", false, "Specify whether to backup the dependants object along with their parent.")
 
 	return cmd
 }
 
-func (opt *options) backupManifests(targetRef v1beta1.TargetRef) (*restic.BackupOutput, error) {
+func (opt *options) backupResources(targetRef v1beta1.TargetRef) (*restic.BackupOutput, error) {
 	var err error
 	opt.setupOptions.StorageSecret, err = opt.kubeClient.CoreV1().Secrets(opt.storageSecret.Namespace).Get(context.TODO(), opt.storageSecret.Name, metav1.GetOptions{})
 	if err != nil {
@@ -190,7 +190,7 @@ func (opt *options) backupManifests(targetRef v1beta1.TargetRef) (*restic.Backup
 	}
 
 	klog.Infoln("Cleaning up directory: ", opt.dataDir)
-	opt.dataDir = filepath.Join(opt.setupOptions.ScratchDir, "manifests")
+	opt.dataDir = filepath.Join(opt.setupOptions.ScratchDir, "resources")
 	if err := clearDir(opt.dataDir); err != nil {
 		return nil, err
 	}

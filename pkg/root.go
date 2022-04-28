@@ -30,9 +30,9 @@ var licenseApiService string
 
 func NewRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:               "manifest-backup",
-		Short:             `Kubernetes manifest backup plugin for Stash by AppsCode`,
-		Long:              `Kubernetes manifest backup plugin for Stash by AppsCode. For more information, visit here: https://appscode.com/products/stash`,
+		Use:               "kubedump",
+		Short:             `Kubernetes resource backup plugin for Stash by AppsCode`,
+		Long:              `Kubernetes resource backup plugin for Stash by AppsCode. For more information, visit here: https://appscode.com/products/stash`,
 		DisableAutoGenTag: true,
 		PersistentPreRunE: func(c *cobra.Command, args []string) error {
 			return scheme.AddToScheme(clientsetscheme.Scheme)

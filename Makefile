@@ -16,7 +16,7 @@ SHELL=/bin/bash -o pipefail
 
 GO_PKG   := stash.appscode.dev
 REPO     := $(notdir $(shell pwd))
-BIN      := manifest-backup
+BIN      := kubedump
 COMPRESS ?= no
 
 
