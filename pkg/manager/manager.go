@@ -17,7 +17,6 @@ limitations under the License.
 package manager
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -66,5 +65,5 @@ func (w fileWriter) Write(path string, data []byte) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(path, data, 0o644)
+	return os.WriteFile(path, data, 0o644)
 }
