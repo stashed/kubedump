@@ -16,7 +16,7 @@ require (
 	kmodules.xyz/client-go v0.25.29
 	kmodules.xyz/offshoot-api v0.25.4
 	sigs.k8s.io/yaml v1.3.0
-	stash.appscode.dev/apimachinery v0.30.1-0.20230814025143-fcb8a9106d3c
+	stash.appscode.dev/apimachinery v0.31.0
 )
 
 require github.com/onsi/gomega v1.20.1 // indirect
