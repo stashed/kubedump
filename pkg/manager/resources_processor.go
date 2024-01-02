@@ -112,7 +112,7 @@ func (opt *resourceProcessor) processGroup(group *metav1.APIResourceList) error 
 }
 
 func (opt *resourceProcessor) processResourceInstances(gvr schema.GroupVersionResource) error {
-	klog.V(5).Infof("Processing: ", gvr.String())
+	klog.V(5).Infoln("Processing:", gvr)
 	var next string
 	for {
 		var ri dynamic.ResourceInterface
