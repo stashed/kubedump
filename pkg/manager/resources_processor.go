@@ -19,6 +19,8 @@ package manager
 import (
 	"context"
 
+	"stash.appscode.dev/apimachinery/apis/repositories/v1alpha1"
+
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -100,6 +102,10 @@ func (opt *resourceProcessor) processGroup(group *metav1.APIResourceList) error 
 		}
 		// don't process non-namespaced resources when target is a namespace
 		if !res.Namespaced && opt.namespace != "" {
+			continue
+		}
+
+		if res.Kind == v1alpha1.ResourceKindSnapshot && res.Group == v1alpha1.GroupName {
 			continue
 		}
 
