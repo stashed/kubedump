@@ -148,6 +148,7 @@ func NewCmdBackup() *cobra.Command {
 	cmd.Flags().BoolVar(&opt.sanitize, "sanitize", true, "Specify whether to remove the decorators from the resource YAML (default is true)")
 	cmd.Flags().StringVar(&opt.selector, "label-selector", "", "Specify a label selector to filter the resources.")
 	cmd.Flags().BoolVar(&opt.includeDependants, "include-dependants", false, "Specify whether to backup the dependants object along with their parent.")
+	cmd.Flags().StringSliceVar(&opt.ignoreGroupKinds, "ignore-groupkinds", opt.ignoreGroupKinds, "Specify the groupkinds to ignore.")
 
 	return cmd
 }
@@ -204,6 +205,7 @@ func (opt *options) backupResources(targetRef v1beta1.TargetRef) (*restic.Backup
 		Target:            targetRef,
 		Selector:          opt.selector,
 		IncludeDependants: opt.includeDependants,
+		IgnoreGroupKinds:  opt.ignoreGroupKinds,
 		Storage:           manager.NewFileWriter(),
 	}
 	mgr := manager.NewBackupManager(mgOpts)

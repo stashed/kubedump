@@ -19,8 +19,6 @@ package manager
 import (
 	"context"
 
-	"stash.appscode.dev/apimachinery/apis/repositories/v1alpha1"
-
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -34,12 +32,13 @@ import (
 )
 
 type resourceProcessor struct {
-	config        *rest.Config
-	disc          discovery.DiscoveryInterface
-	di            dynamic.Interface
-	itemProcessor itemProcessor
-	namespace     string
-	selector      string
+	config           *rest.Config
+	disc             discovery.DiscoveryInterface
+	di               dynamic.Interface
+	itemProcessor    itemProcessor
+	namespace        string
+	selector         string
+	ignoreGroupKinds []string
 }
 
 type itemProcessor interface {
@@ -105,7 +104,7 @@ func (opt *resourceProcessor) processGroup(group *metav1.APIResourceList) error 
 			continue
 		}
 
-		if res.Kind == v1alpha1.ResourceKindSnapshot && res.Group == v1alpha1.GroupName {
+		if opt.shouldIgnoreResource(schema.GroupKind{Group: gv.WithResource(res.Name).Group, Kind: res.Kind}) {
 			continue
 		}
 
@@ -115,6 +114,15 @@ func (opt *resourceProcessor) processGroup(group *metav1.APIResourceList) error 
 		}
 	}
 	return nil
+}
+
+func (opt *resourceProcessor) shouldIgnoreResource(gk schema.GroupKind) bool {
+	for _, igk := range opt.ignoreGroupKinds {
+		if gk == schema.ParseGroupKind(igk) {
+			return true
+		}
+	}
+	return false
 }
 
 func (opt *resourceProcessor) processResourceInstances(gvr schema.GroupVersionResource) error {
