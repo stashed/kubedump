@@ -31,22 +31,24 @@ import (
 )
 
 type genericResourceBackupManager struct {
-	namespace      string
-	storage        Writer
-	config         *rest.Config
-	sanitize       bool
-	dataDir        string
-	selector       string
-	useRootDataDir bool
+	namespace        string
+	storage          Writer
+	config           *rest.Config
+	sanitize         bool
+	dataDir          string
+	selector         string
+	useRootDataDir   bool
+	ignoreGroupKinds []string
 }
 
 func newGenericResourceBackupManager(opt BackupOptions) BackupManager {
 	mgr := genericResourceBackupManager{
-		config:   opt.Config,
-		storage:  opt.Storage,
-		sanitize: opt.Sanitize,
-		dataDir:  opt.DataDir,
-		selector: opt.Selector,
+		config:           opt.Config,
+		storage:          opt.Storage,
+		sanitize:         opt.Sanitize,
+		dataDir:          opt.DataDir,
+		selector:         opt.Selector,
+		ignoreGroupKinds: opt.IgnoreGroupKinds,
 	}
 	if opt.Target.Kind == apis.KindNamespace {
 		mgr.namespace = opt.Target.Name
@@ -64,10 +66,11 @@ func (opt genericResourceBackupManager) Dump() error {
 	}
 
 	rp := resourceProcessor{
-		config:        opt.config,
-		namespace:     opt.namespace,
-		selector:      opt.selector,
-		itemProcessor: processor,
+		config:           opt.config,
+		namespace:        opt.namespace,
+		selector:         opt.selector,
+		itemProcessor:    processor,
+		ignoreGroupKinds: opt.ignoreGroupKinds,
 	}
 	return rp.processAPIResources()
 }

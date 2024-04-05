@@ -37,6 +37,7 @@ type BackupOptions struct {
 	Selector          string
 	Target            v1beta1.TargetRef
 	IncludeDependants bool
+	IgnoreGroupKinds  []string
 	Storage           Writer
 }
 

@@ -43,6 +43,7 @@ type options struct {
 	dataDir           string
 	selector          string
 	includeDependants bool
+	ignoreGroupKinds  []string
 
 	invokerKind string
 	invokerName string

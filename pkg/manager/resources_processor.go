@@ -32,12 +32,13 @@ import (
 )
 
 type resourceProcessor struct {
-	config        *rest.Config
-	disc          discovery.DiscoveryInterface
-	di            dynamic.Interface
-	itemProcessor itemProcessor
-	namespace     string
-	selector      string
+	config           *rest.Config
+	disc             discovery.DiscoveryInterface
+	di               dynamic.Interface
+	itemProcessor    itemProcessor
+	namespace        string
+	selector         string
+	ignoreGroupKinds []string
 }
 
 type itemProcessor interface {
@@ -103,12 +104,25 @@ func (opt *resourceProcessor) processGroup(group *metav1.APIResourceList) error 
 			continue
 		}
 
+		if opt.shouldIgnoreResource(schema.GroupKind{Group: gv.WithResource(res.Name).Group, Kind: res.Kind}) {
+			continue
+		}
+
 		err := opt.processResourceInstances(gv.WithResource(res.Name))
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (opt *resourceProcessor) shouldIgnoreResource(gk schema.GroupKind) bool {
+	for _, igk := range opt.ignoreGroupKinds {
+		if gk == schema.ParseGroupKind(igk) {
+			return true
+		}
+	}
+	return false
 }
 
 func (opt *resourceProcessor) processResourceInstances(gvr schema.GroupVersionResource) error {

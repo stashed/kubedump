@@ -41,6 +41,7 @@ type applicationBackupManager struct {
 	dataDir           string
 	selector          string
 	includeDependants bool
+	ignoreGroupKinds  []string
 	target            v1beta1.TargetRef
 }
 
@@ -52,6 +53,7 @@ func newApplicationBackupManager(opt BackupOptions) BackupManager {
 		dataDir:           opt.DataDir,
 		selector:          opt.Selector,
 		includeDependants: opt.IncludeDependants,
+		ignoreGroupKinds:  opt.IgnoreGroupKinds,
 		target:            opt.Target,
 	}
 }
@@ -124,10 +126,11 @@ func (opt *applicationBackupManager) getRootObject(gvr schema.GroupVersionResour
 
 func (opt *applicationBackupManager) generateDependencyTree(tb *treeBuilder) error {
 	rp := resourceProcessor{
-		config:        opt.config,
-		namespace:     opt.target.Namespace,
-		selector:      opt.selector,
-		itemProcessor: tb,
+		config:           opt.config,
+		namespace:        opt.target.Namespace,
+		selector:         opt.selector,
+		itemProcessor:    tb,
+		ignoreGroupKinds: opt.ignoreGroupKinds,
 	}
 	return rp.processAPIResources()
 }
