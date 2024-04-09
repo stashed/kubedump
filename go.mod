@@ -18,7 +18,7 @@ require (
 	kmodules.xyz/client-go v0.29.13
 	kmodules.xyz/offshoot-api v0.29.0
 	sigs.k8s.io/yaml v1.4.0
-	stash.appscode.dev/apimachinery v0.33.0
+	stash.appscode.dev/apimachinery v0.34.0
 )
 
 require (
