@@ -221,6 +221,10 @@ func (opt *options) backupResources(targetRef v1beta1.TargetRef) (*restic.Backup
 	if err != nil {
 		return nil, err
 	}
+	err = resticWrapper.EnsureNoExclusiveLock(opt.kubeClient, opt.namespace)
+	if err != nil {
+		return nil, err
+	}
 
 	return resticWrapper.RunBackup(opt.backupOptions, targetRef)
 }
