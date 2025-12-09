@@ -118,7 +118,7 @@ func (opt *itemDumper) getFileName(r unstructured.Unstructured) string {
 	return filepath.Join(prefix, r.GetKind(), r.GetName()) + ".yaml"
 }
 
-func storeItem(fileName string, in map[string]interface{}, storage Writer) error {
+func storeItem(fileName string, in map[string]any, storage Writer) error {
 	data, err := yaml.Marshal(in)
 	if err != nil {
 		return err
