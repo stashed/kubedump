@@ -29,13 +29,13 @@ func newPodSanitizer() Sanitizer {
 	return podSanitizer{}
 }
 
-func (s podSanitizer) Sanitize(in map[string]interface{}) (map[string]interface{}, error) {
+func (s podSanitizer) Sanitize(in map[string]any) (map[string]any, error) {
 	ms := newMetadataSanitizer()
 	in, err := ms.Sanitize(in)
 	if err != nil {
 		return nil, err
 	}
-	spec, ok := in["spec"].(map[string]interface{})
+	spec, ok := in["spec"].(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("invalid pod spec")
 	}
@@ -47,7 +47,7 @@ func (s podSanitizer) Sanitize(in map[string]interface{}) (map[string]interface{
 	return in, nil
 }
 
-func cleanUpPodSpec(in map[string]interface{}) (map[string]interface{}, error) {
+func cleanUpPodSpec(in map[string]any) (map[string]any, error) {
 	b, err := yaml.Marshal(in)
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func cleanUpPodSpec(in map[string]interface{}) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	var out map[string]interface{}
+	var out map[string]any
 	err = yaml.Unmarshal(b, &out)
 	return out, err
 }
