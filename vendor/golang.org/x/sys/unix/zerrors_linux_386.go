@@ -115,6 +115,8 @@ const (
 	IEXTEN                           = 0x8000
 	IN_CLOEXEC                       = 0x80000
 	IN_NONBLOCK                      = 0x800
+	IOCTL_MEI_NOTIFY_GET             = 0x80044803
+	IOCTL_MEI_NOTIFY_SET             = 0x40044802
 	IOCTL_VM_SOCKETS_GET_LOCAL_CID   = 0x7b9
 	ISIG                             = 0x1
 	IUCLC                            = 0x200
